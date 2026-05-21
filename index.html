@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel do Locador - Jukebox Premium</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --surface: #1e293b;
+            --surface-hover: #334155;
+            --primary: #3b82f6;
+            --secondary: #10b981;
+            --danger: #ef4444;
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+            --glow: 0 0 20px rgba(59, 130, 246, 0.3);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        body { background-color: var(--bg-dark); color: var(--text); min-height: 100vh; display: flex; }
+
+        /* Login Overlay */
+        #login-overlay {
+            position: fixed; inset: 0; background: rgba(15, 23, 42, 0.95);
+            display: flex; align-items: center; justify-content: center; z-index: 9999;
+            backdrop-filter: blur(10px);
+        }
+        .login-box {
+            background: var(--surface); padding: 40px; border-radius: 20px;
+            width: 100%; max-width: 400px; text-align: center;
+            box-shadow: var(--glow); border: 1px solid #334155;
+        }
+        .login-box h2 { margin-bottom: 24px; font-size: 1.8rem; font-weight: 800; background: linear-gradient(to right, #3b82f6, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+        .input-group { margin-bottom: 20px; text-align: left; }
+        .input-group label { display: block; margin-bottom: 8px; font-size: 0.9rem; color: var(--text-muted); font-weight: 500; }
+        .input-group input { width: 100%; padding: 12px 16px; background: rgba(0,0,0,0.2); border: 1px solid #334155; border-radius: 8px; color: white; font-size: 1rem; transition: all 0.3s; }
+        .input-group input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
+
+        .btn { padding: 12px 24px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; transition: all 0.2s; width: 100%; font-size: 1rem; color: white; }
+        .btn-primary { background: var(--primary); box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4); }
+
+        /* Main Content */
+        .main-content { padding: 40px; flex: 1; margin: 0 auto; max-width: 1200px; display: none; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; }
+        .header h1 { font-size: 2rem; font-weight: 800; letter-spacing: -1px; }
+
+        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px; margin-bottom: 40px; }
+        .stat-card { background: linear-gradient(145deg, var(--surface) 0%, rgba(30,41,59,0.5) 100%); padding: 24px; border-radius: 16px; border: 1px solid #334155; }
+        .stat-title { color: var(--text-muted); font-size: 0.9rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+        .stat-value { font-size: 2.5rem; font-weight: 700; color: var(--secondary); }
+
+        .data-section { background: var(--surface); border-radius: 12px; border: 1px solid #334155; overflow: hidden; }
+        .section-header { padding: 20px 24px; border-bottom: 1px solid #334155; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 16px 24px; text-align: left; border-bottom: 1px solid #334155; }
+        th { color: var(--text-muted); font-weight: 600; font-size: 0.9rem; background: rgba(0,0,0,0.2); }
+        tr:hover { background: var(--surface-hover); }
+
+        .badge { padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; background: rgba(33, 150, 243, 0.2); color: var(--primary); }
+
+        /* Modal */
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-content { background: var(--surface); padding: 32px; border-radius: 16px; width: 100%; max-width: 600px; max-height: 80vh; overflow-y: auto; border: 1px solid #334155; }
+        .modal-header { font-size: 1.2rem; font-weight: 700; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+
+    <!-- Login -->
+    <div id="login-overlay">
+        <div class="login-box">
+            <h2>Painel Locador</h2>
+            <div class="input-group">
+                <label>Email do Locador</label>
+                <input type="email" id="loc-email" placeholder="Seu email">
+            </div>
+            <div class="input-group">
+                <label>Senha de Acesso</label>
+                <input type="password" id="loc-senha" placeholder="Sua senha">
+            </div>
+            <button class="btn btn-primary" onclick="loginLocador()">Acessar Minhas Máquinas</button>
+            <div id="login-err" style="color: var(--danger); margin-top: 12px; display: none;">Credenciais inválidas!</div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content" id="dashboard-content">
+        <div class="header">
+            <h1>Minhas Máquinas</h1>
+            <button class="btn btn-primary" style="width: auto; padding: 10px 20px;" onclick="carregarDados()">Atualizar Dados</button>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="stat-card">
+                <div class="stat-title">Máquinas Ativas</div>
+                <div class="stat-value" id="stat-maquinas">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Músicas Tocadas (Total)</div>
+                <div class="stat-value" id="stat-musicas">0</div>
+            </div>
+            <div class="stat-card" style="border-color:#10b981;">
+                <div class="stat-title" style="color:#10b981;">Faturamento Bruto</div>
+                <div class="stat-value" style="color:#10b981;" id="stat-faturamento-bruto">R$ 0,00</div>
+            </div>
+            <div class="stat-card" style="border-color:#3b82f6;">
+                <div class="stat-title" style="color:#3b82f6;">Seu Repasse Líquido</div>
+                <div class="stat-value" style="color:#3b82f6;" id="stat-faturamento">R$ 0,00</div>
+            </div>
+        </div>
+
+        <div class="data-section">
+            <div class="section-header">
+                <h2>Lista de Pontos</h2>
+            </div>
+            <div style="overflow-x: auto;">
+                <table id="table-pontos">
+                    <thead>
+                        <tr>
+                            <th>Ref/ID</th>
+                            <th>Nome do Ponto</th>
+                            <th>Músicas Tocadas</th>
+                            <th>Preço por Ficha</th>
+                            <th>Financeiro</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Preenchido via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Histórico Ponto -->
+    <div class="modal" id="modal-historico">
+        <div class="modal-content">
+            <div class="modal-header">Histórico Financeiro da Máquina</div>
+            <table id="table-historico">
+                <thead>
+                    <tr><th>Data/Hora</th><th>Valor (R$)</th><th>Descrição</th></tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+            <div style="display:flex; justify-content:flex-end; margin-top:20px;">
+                <button class="btn btn-primary" style="width:auto;" onclick="fecharModal('modal-historico')">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Agendar Cobrança -->
+    <div class="modal" id="modal-agendar">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">Agendar Data de Cobrança</div>
+            <input type="hidden" id="agendar-pto-id">
+            <div class="input-group">
+                <label>Selecione a Data e Hora</label>
+                <input type="datetime-local" id="agendar-pto-data">
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:20px;">
+                <button class="btn btn-primary" style="background: transparent; border: 1px solid #334155; width:auto;" onclick="fecharModal('modal-agendar')">Cancelar</button>
+                <button class="btn btn-success" style="width:auto;" onclick="salvarDataCobranca()">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://netoke.shop/';
+        let userEmail = "";
+        let userSenha = "";
+        let globalPontos = [];
+
+        async function loginLocador() {
+            userEmail = document.getElementById('loc-email').value;
+            userSenha = document.getElementById('loc-senha').value;
+            
+            try {
+                const res = await fetch(`${API_BASE}listar_pontos_locador?email=${encodeURIComponent(userEmail)}&senha=${encodeURIComponent(userSenha)}`);
+                if(res.ok) {
+                    const data = await res.json();
+                    globalPontos = data.pontos || [];
+                    
+                    document.getElementById('login-overlay').style.display = 'none';
+                    document.getElementById('dashboard-content').style.display = 'block';
+                    renderDados();
+                } else {
+                    document.getElementById('login-err').style.display = 'block';
+                }
+            } catch(e) {
+                alert("Erro ao conectar com o servidor.");
+            }
+        }
+
+        async function carregarDados() {
+            try {
+                const res = await fetch(`${API_BASE}listar_pontos_locador?email=${encodeURIComponent(userEmail)}&senha=${encodeURIComponent(userSenha)}`);
+                if(res.ok) {
+                    const data = await res.json();
+                    globalPontos = data.pontos || [];
+                    renderDados();
+                }
+            } catch(e) {
+                console.error(e);
+            }
+        }
+
+        function renderDados() {
+            const tbody = document.querySelector('#table-pontos tbody');
+            tbody.innerHTML = '';
+            
+            let totalMusicas = 0;
+            let faturamentoBruto = 0.0;
+            let repasseTotal = 0.0;
+
+            globalPontos.forEach(p => {
+                const preco = parseFloat(p.preco_credito || 1);
+                const porc = parseFloat(p.porcentagem_plataforma || 35);
+                const faturamento = p.entradas * preco;
+                const taxaPlataforma = faturamento * (porc / 100);
+                const repasse = faturamento - taxaPlataforma;
+
+                totalMusicas += p.entradas;
+                faturamentoBruto += faturamento;
+                repasseTotal += repasse;
+
+                let cobrancaTxt = p.data_cobranca ? new Date(p.data_cobranca).toLocaleString('pt-BR') : 'Não agendada';
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><span class="badge">${p.usuario_id}</span></td>
+                    <td><strong>${p.nome}</strong><br><small style="color:var(--primary); font-family:monospace;">Senha: ${p.senha}</small></td>
+                    <td><strong style="color:var(--secondary); font-size:1.1rem;">${p.entradas}</strong><br><small style="color:var(--text-muted)">Cobrança: ${cobrancaTxt}</small></td>
+                    <td>R$ ${preco.toFixed(2)}</td>
+                    <td>
+                        <div style="font-size:0.85rem; line-height:1.6;">
+                            <div>Bruto: <strong>R$ ${faturamento.toFixed(2)}</strong></div>
+                            <div style="color:#ef4444;">Plataforma (${porc}%): <strong>-R$ ${taxaPlataforma.toFixed(2)}</strong></div>
+                            <div style="color:var(--secondary);"><strong>Seu repasse: R$ ${repasse.toFixed(2)}</strong></div>
+                        </div>
+                    </td>
+                    <td style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <button class="btn btn-primary" style="padding: 6px 12px; font-size: 0.8rem; width:auto;" onclick="abrirModalHistorico(${p.id})">Ver Histórico</button>
+                        <button class="btn btn-success" style="padding: 6px 12px; font-size: 0.8rem; width:auto;" onclick="abrirModalAgendar(${p.id}, '${p.data_cobranca || ''}')">Agendar Cobrança</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('stat-maquinas').textContent = globalPontos.length;
+            document.getElementById('stat-musicas').textContent = totalMusicas;
+            document.getElementById('stat-faturamento-bruto').textContent = `R$ ${faturamentoBruto.toFixed(2)}`;
+            document.getElementById('stat-faturamento').textContent = `R$ ${repasseTotal.toFixed(2)}`;
+        }
+
+
+        async function abrirModalHistorico(pontoId) {
+            document.getElementById('modal-historico').style.display = 'flex';
+            const tbody = document.querySelector('#table-historico tbody');
+            tbody.innerHTML = '<tr><td colspan="3">Carregando...</td></tr>';
+            try {
+                const res = await fetch(`${API_BASE}listar_historico_ponto?ponto_id=${pontoId}`);
+                if(res.ok) {
+                    const data = await res.json();
+                    tbody.innerHTML = '';
+                    if(!data.historico.length) {
+                        tbody.innerHTML = '<tr><td colspan="3">Nenhum histórico encontrado.</td></tr>';
+                        return;
+                    }
+                    data.historico.forEach(h => {
+                        const tr = document.createElement('tr');
+                        const dataFormatada = new Date(h.data_hora).toLocaleString('pt-BR');
+                        tr.innerHTML = `<td>${dataFormatada}</td><td>R$ ${parseFloat(h.valor).toFixed(2)}</td><td>${h.descricao}</td>`;
+                        tbody.appendChild(tr);
+                    });
+                }
+            } catch(e) {
+                tbody.innerHTML = '<tr><td colspan="3">Erro ao carregar histórico.</td></tr>';
+            }
+        }
+
+        function abrirModalAgendar(pontoId, dataAtual) {
+            document.getElementById('agendar-pto-id').value = pontoId;
+            document.getElementById('agendar-pto-data').value = dataAtual || '';
+            document.getElementById('modal-agendar').style.display = 'flex';
+        }
+
+        async function salvarDataCobranca() {
+            const pontoId = document.getElementById('agendar-pto-id').value;
+            const dataCobranca = document.getElementById('agendar-pto-data').value;
+            if(!dataCobranca) return alert("Selecione uma data!");
+
+            try {
+                const res = await fetch(`${API_BASE}locador_atualizar_cobranca?email=${encodeURIComponent(userEmail)}&senha=${encodeURIComponent(userSenha)}&ponto_id=${pontoId}&data_cobranca=${encodeURIComponent(dataCobranca)}`);
+                if(res.ok) {
+                    alert("Data agendada com sucesso!");
+                    fecharModal('modal-agendar');
+                    carregarDados();
+                } else {
+                    const data = await res.json();
+                    alert(data.detail || "Erro ao agendar.");
+                }
+            } catch(e) {
+                alert("Erro de conexão.");
+            }
+        }
+
+        function fecharModal(id) {
+            document.getElementById(id).style.display = 'none';
+        }
+    </script>
+</body>
+</html>
